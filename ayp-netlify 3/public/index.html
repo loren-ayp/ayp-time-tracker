@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AYP Time Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F6F5F1;
+  --surface: #FFFFFF;
+  --surface-2: #EFEDE7;
+  --border: rgba(0,0,0,0.09);
+  --border-md: rgba(0,0,0,0.15);
+  --text: #1A1916;
+  --text-2: #5C5A54;
+  --text-3: #9B9890;
+  --green: #1D9E75;
+  --green-bg: #E1F5EE;
+  --green-text: #085041;
+  --amber-bg: #FAEEDA;
+  --amber-text: #633806;
+  --red-bg: #FCEBEB;
+  --red-text: #791F1F;
+  --purple-bg: #EEEDFE;
+  --purple-text: #3C3489;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --r: 8px;
+  --rlg: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181714; --surface: #22211E; --surface-2: #2A2926;
+    --border: rgba(255,255,255,0.08); --border-md: rgba(255,255,255,0.15);
+    --text: #F0EDE6; --text-2: #A09E97; --text-3: #5C5A54;
+    --green-bg: #04342C; --green-text: #9FE1CB;
+    --amber-bg: #412402; --amber-text: #FAC775;
+    --red-bg: #501313; --red-text: #F7C1C1;
+    --purple-bg: #26215C; --purple-text: #AFA9EC;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+
+/* ── Layout ── */
+.shell{display:grid;grid-template-columns:252px 1fr;min-height:100vh}
+
+/* ── Sidebar ── */
+.side{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.brand-eyebrow{font-family:var(--mono);font-size:10px;color:var(--text-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.brand-name{font-size:17px;font-weight:600}
+.brand-sub{font-size:12px;color:var(--text-2);margin-top:1px}
+.s-section{padding:14px 18px;border-bottom:1px solid var(--border)}
+.s-label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
+.field-label{font-size:12px;color:var(--text-2);margin-bottom:4px;display:block}
+input[type=text],input[type=date],input[type=password]{width:100%;font-family:var(--sans);font-size:13px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text);outline:none;margin-bottom:10px;transition:border-color .15s}
+input:focus{border-color:var(--green)}
+input[type=password]{font-family:var(--mono);letter-spacing:.06em}
+.date-row{display:flex;flex-direction:column;gap:6px}
+.date-row input{margin-bottom:0}
+.date-quick{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 14px;border-radius:var(--r);border:1px solid var(--border-md);background:transparent;color:var(--text);cursor:pointer;transition:background .12s,transform .08s;width:100%}
+.btn:hover{background:var(--surface-2)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn+.btn{margin-top:6px}
+.btn-green{background:var(--green);border-color:var(--green);color:#fff}
+.btn-green:hover{background:#157a5a}
+.conn-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);margin-top:10px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text-3);flex-shrink:0}
+.dot.ok{background:var(--green)}
+.dot.err{background:#E24B4A}
+.dot.spin{background:#EF9F27;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.rate-wrap{margin-top:6px}
+.rate-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);font-family:var(--mono);margin-bottom:5px}
+.rate-track{height:3px;background:var(--surface-2);border-radius:2px;overflow:hidden}
+.rate-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s}
+.side-foot{padding:14px 18px;border-top:1px solid var(--border);margin-top:auto}
+
+/* ── Main ── */
+.main{padding:28px 30px;display:flex;flex-direction:column;gap:18px}
+.top-bar{display:flex;align-items:center;justify-content:space-between}
+.page-title{font-size:19px;font-weight:600}
+.top-actions{display:flex;gap:8px}
+.top-actions .btn{width:auto}
+
+/* ── Stats ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{background:var(--surface-2);border-radius:var(--r);padding:13px 15px}
+.stat-lbl{font-family:var(--mono);font-size:10px;color:var(--text-3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+.stat-val{font-size:21px;font-weight:600;line-height:1.2}
+.stat-val.sm{font-size:14px;margin-top:2px}
+
+/* ── Client cards ── */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);overflow:hidden}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none;transition:background .1s}
+.card-head:hover{background:var(--surface-2)}
+.card-head-l{display:flex;align-items:center;gap:10px}
+.avatar{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:500;flex-shrink:0}
+.client-name{font-size:14px;font-weight:600}
+.client-meta{font-family:var(--mono);font-size:11px;color:var(--text-3);margin-top:1px}
+.card-head-r{display:flex;align-items:center;gap:10px}
+.card-hours{font-family:var(--mono);font-size:14px;font-weight:500}
+.chev{color:var(--text-3);font-size:18px;transition:transform .2s;line-height:1}
+.chev.open{transform:rotate(180deg)}
+.card-body{display:none;border-top:1px solid var(--border)}
+.card-body.open{display:block}
+
+/* ── Entry list ── */
+.entry-list{padding:12px 16px 0}
+.entry-row{display:grid;grid-template-columns:44px 1fr auto auto;gap:0 10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--border)}
+.entry-row:last-child{border-bottom:none}
+.entry-time{font-family:var(--mono);font-size:11px;color:var(--text-3);padding-top:1px}
+.entry-desc{font-size:13px;color:var(--text);line-height:1.4}
+.entry-desc em{color:var(--text-3);font-style:italic}
+.entry-tags{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end}
+.tag{font-family:var(--mono);font-size:10px;background:var(--purple-bg);color:var(--purple-text);padding:2px 6px;border-radius:4px;white-space:nowrap}
+.tag.rs{background:var(--green-bg);color:var(--green-text)}
+.tag.ms{background:var(--amber-bg);color:var(--amber-text)}
+.tag.nb{background:var(--surface-2);color:var(--text-3)}
+.entry-hrs{font-family:var(--mono);font-size:12px;white-space:nowrap;text-align:right}
+
+/* ── Rippling panel ── */
+.rip-panel{margin:12px 16px 16px;background:var(--surface-2);border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+.rip-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border)}
+.rip-title{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.rip-copy-btn{font-family:var(--mono);font-size:11px;background:transparent;border:1px solid var(--border-md);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--text-2);display:flex;align-items:center;gap:4px;transition:all .12s}
+.rip-copy-btn:hover{background:var(--surface);color:var(--text)}
+.rip-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+
+/* ── Rippling entry form ── */
+.rip-entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.rip-entry-top{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+.rip-field-wrap{display:flex;flex-direction:column;gap:3px}
+.rip-field-label{font-family:var(--mono);font-size:10px;color:var(--text-3);letter-spacing:.06em;text-transform:uppercase}
+.rip-select{font-family:var(--sans);font-size:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);cursor:pointer;width:100%;outline:none;transition:border-color .15s}
+.rip-select:focus{border-color:var(--green)}
+.rip-hrs{font-family:var(--mono);font-size:15px;font-weight:500;white-space:nowrap;text-align:right;padding-bottom:4px}
+.rip-desc-wrap{display:flex;flex-direction:column;gap:3px}
+.rip-desc-input{font-family:var(--sans);font-size:13px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:6px 9px;color:var(--text);width:100%;outline:none;transition:border-color .15s;resize:none}
+.rip-desc-input:focus{border-color:var(--green)}
+.rip-desc-input::placeholder{color:var(--text-3);font-style:italic}
+
+/* ── Empty / alerts ── */
+.empty{text-align:center;padding:56px 20px;color:var(--text-3)}
+.empty svg{opacity:.3;margin-bottom:12px}
+.empty p{font-size:14px;line-height:1.7}
+.alert{display:flex;align-items:flex-start;gap:9px;padding:11px 13px;border-radius:var(--r);font-size:13px;line-height:1.5}
+.alert-err{background:var(--red-bg);color:var(--red-text)}
+.alert-info{background:var(--green-bg);color:var(--green-text)}
+
+/* ── Spinner ── */
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:var(--bg);font-size:13px;padding:9px 15px;border-radius:var(--r);opacity:0;transform:translateY(6px);transition:all .2s;z-index:999;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- ── Sidebar ── -->
+<aside class="side">
+  <div class="brand">
+    <div class="brand-eyebrow">AYP</div>
+    <div class="brand-name">Time Tracker</div>
+    <div class="brand-sub">Toggl → Rippling</div>
+  </div>
+
+  <div class="s-section">
+    <div class="s-label">Toggl API token</div>
+    <input type="password" id="api-token" placeholder="Paste token from toggl.com/profile" autocomplete="off">
+    <button class="btn" id="test-btn" onclick="testConn()">Test connection</button>
+    <div class="conn-status">
+      <span class="dot" id="dot"></span>
+      <span id="conn-text">Not connected</span>
+    </div>
+  </div>
+
+  <div class="s-section">
+    <div class="s-label">Date range</div>
+    <div class="date-row" style="margin-bottom:10px">
+      <div>
+        <label class="field-label" for="d-from">From</label>
+        <input type="date" id="d-from">
+      </div>
+      <div>
+        <label class="field-label" for="d-to">To</label>
+        <input type="date" id="d-to">
+      </div>
+    </div>
+    <div class="date-quick">
+      <button class="btn" onclick="setToday()">Today</button>
+      <button class="btn" onclick="setWeek()">This week</button>
+    </div>
+  </div>
+
+  <div class="s-section" style="flex:1">
+    <div class="s-label">API usage</div>
+    <div class="rate-wrap">
+      <div class="rate-row">
+        <span><span id="rate-n">0</span> / 30 req/hr</span>
+        <span id="rate-reset"></span>
+      </div>
+      <div class="rate-track"><div class="rate-fill" id="rate-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="side-foot">
+    <button class="btn btn-green" id="pull-btn" onclick="pullEntries()">
+      ↓ Pull time entries
+    </button>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+  <div class="top-bar">
+    <div class="page-title" id="page-title">Time entries</div>
+    <div class="top-actions">
+      <button class="btn" id="copy-all-btn" style="display:none" onclick="copyAll()">Copy all for Rippling</button>
+      <button class="btn" id="export-btn" style="display:none" onclick="exportCSV()">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><div class="stat-lbl">Total hours</div><div class="stat-val" id="s-hours">—</div></div>
+    <div class="stat"><div class="stat-lbl">Clients</div><div class="stat-val" id="s-clients">—</div></div>
+    <div class="stat"><div class="stat-lbl">Entries</div><div class="stat-val" id="s-entries">—</div></div>
+    <div class="stat"><div class="stat-lbl">Period</div><div class="stat-val sm" id="s-period">—</div></div>
+  </div>
+
+  <div id="alert-area"></div>
+
+  <div class="cards" id="cards">
+    <div class="empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <p>Enter your Toggl API token,<br>pick a date range, then pull entries.</p>
+    </div>
+  </div>
+</main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+const API = '/api'; // proxied through Netlify function
+
+// Rippling Time Entry Reasons, grouped by prefix
+const REASONS = {
+  'Impl': ['Impl - Meetings','Impl - Configuration','Impl - Imports','Impl - Other'],
+  'Sub':  ['Sub - PEO','Sub - BEN Builds','Sub - Add Ons','Sub - Talent'],
+  'MS':   ['MS - Payroll','MS - Benefits','MS - HRIS','MS - Talent','MS - Platform','MS - Custom App Templates','MS - IT','MS - Procurement'],
+  'Hourly': ['Hourly Work'],
+  'Recruiting': ['Recruiting'],
+  'Advisory': ['Advisory'],
+  'NB':   ['NB - Training/Shadowing','NB - Internal Meetings/Tasks','NB - Mentoring','NB - Sales/Leadership Task','NB - Travel','NB - Customer Rework/Dead Cost','NB - Open Bandwidth'],
+};
+
+// Toggl tag → Rippling prefix
+const TAG_PREFIX = {
+  'rs-meet':      'Sub',
+  'rs-prep':      'Sub',
+  'ms':           'MS',
+  'impl':         'Impl',
+  'hourly':       'Hourly',
+  'advisory':     'Advisory',
+  'recruiting':   'Recruiting',
+  'ayp-internal': 'NB',
+  'out-of-scope': 'NB',
+};
+
+const AVATAR_COLORS = [
+  {bg:'#E1F5EE',tx:'#085041'},{bg:'#EEEDFE',tx:'#3C3489'},
+  {bg:'#FAEEDA',tx:'#633806'},{bg:'#E6F1FB',tx:'#042C53'},
+  {bg:'#EAF3DE',tx:'#173404'},{bg:'#FAECE7',tx:'#4A1B0C'},
+  {bg:'#FBEAF0',tx:'#4B1528'},{bg:'#F1EFE8',tx:'#2C2C2A'},
+];
+
+// ── State ─────────────────────────────────────────────────────────────────
+let G = { workspace: null, grouped: {}, reqCount: 0, resetTimer: null };
+
+// ── Init ──────────────────────────────────────────────────────────────────
+(()=>{
+  const t = localStorage.getItem('ayp_tok');
+  if(t) document.getElementById('api-token').value = t;
+  setToday();
+})();
+
+function setToday(){
+  const d = isoToday();
+  document.getElementById('d-from').value = d;
+  document.getElementById('d-to').value = d;
+}
+function setWeek(){
+  const n = new Date(), day = n.getDay();
+  const mon = new Date(n); mon.setDate(n.getDate()-(day===0?6:day-1));
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  document.getElementById('d-from').value = mon.toISOString().split('T')[0];
+  document.getElementById('d-to').value   = sun.toISOString().split('T')[0];
+}
+function isoToday(){ return new Date().toISOString().split('T')[0]; }
+
+// ── API helpers ───────────────────────────────────────────────────────────
+function getToken(){
+  const t = document.getElementById('api-token').value.trim();
+  if(t) localStorage.setItem('ayp_tok', t);
+  return t;
+}
+function b64(t){ return btoa(t+':api_token'); }
+
+function trackReq(){
+  G.reqCount++;
+  if(!G.resetTimer){
+    G.resetTimer = setTimeout(()=>{ G.reqCount=0; G.resetTimer=null; updateRate(); }, 3600000);
+  }
+  updateRate();
+}
+function updateRate(){
+  const pct = Math.min(100,(G.reqCount/30)*100);
+  document.getElementById('rate-fill').style.width = pct+'%';
+  document.getElementById('rate-n').textContent = G.reqCount;
+}
+
+async function toggl(path){
+  const tok = getToken();
+  if(!tok) throw new Error('No API token set.');
+  if(G.reqCount >= 28) throw new Error('Rate limit nearly reached. Wait a few minutes.');
+  trackReq();
+  const res = await fetch(API+path, { headers:{ 'Authorization':'Basic '+b64(tok) } });
+  if(res.status===403) throw new Error('Authentication failed — check your API token.');
+  if(!res.ok) throw new Error('Toggl error '+res.status);
+  return res.json();
+}
+
+// ── Test connection ───────────────────────────────────────────────────────
+async function testConn(){
+  const dot = document.getElementById('dot');
+  const txt = document.getElementById('conn-text');
+  const btn = document.getElementById('test-btn');
+  dot.className='dot spin'; txt.textContent='Connecting…'; btn.disabled=true;
+  try {
+    const me = await toggl('/api/v9/me');
+    G.workspace = me.default_workspace_id;
+    dot.className='dot ok'; txt.textContent=me.email;
+    toast('Connected ✓');
+  } catch(e){
+    dot.className='dot err'; txt.textContent=e.message;
+  } finally{ btn.disabled=false; }
+}
+
+// ── Pull entries ──────────────────────────────────────────────────────────
+async function pullEntries(){
+  const tok = getToken();
+  if(!tok){ showAlert('err','Enter your Toggl API token first.'); return; }
+  const from = document.getElementById('d-from').value;
+  const to   = document.getElementById('d-to').value;
+  if(!from||!to){ showAlert('err','Select a date range.'); return; }
+
+  const btn = document.getElementById('pull-btn');
+  btn.innerHTML = '<span class="spinner"></span> Fetching…';
+  btn.disabled = true;
+  clearAlert();
+
+  try {
+    if(!G.workspace){
+      const me = await toggl('/api/v9/me');
+      G.workspace = me.default_workspace_id;
+    }
+
+    const start = from+'T00:00:00+00:00';
+    const end   = to  +'T23:59:59+00:00';
+    const [entries, projects, clients] = await Promise.all([
+      toggl('/api/v9/me/time_entries?start_date='+encodeURIComponent(start)+'&end_date='+encodeURIComponent(end)),
+      toggl('/api/v9/workspaces/'+G.workspace+'/projects?active=true&per_page=200'),
+      toggl('/api/v9/workspaces/'+G.workspace+'/clients'),
+    ]);
+
+    if(!entries||!entries.length){ showAlert('info','No entries found for this date range.'); resetCards(); return; }
+
+    const pMap={}, cMap={};
+    (projects||[]).forEach(p=>pMap[p.id]=p);
+    (clients||[]).forEach(c=>cMap[c.id]=c.name);
+
+    G.grouped = group(entries, pMap, cMap);
+    render(from, to);
+
+  } catch(e){
+    showAlert('err', e.message);
+  } finally {
+    btn.innerHTML = '↓ Pull time entries';
+    btn.disabled = false;
+  }
+}
+
+// ── Group by client ───────────────────────────────────────────────────────
+function group(entries, pMap, cMap){
+  const g={};
+  entries.forEach(e=>{
+    if(!e.duration||e.duration<0) return;
+    const p = e.project_id ? pMap[e.project_id] : null;
+    const cid = p ? p.client_id : null;
+    const name = cid ? (cMap[cid]||'Unknown Client') : '(No client)';
+    if(!g[name]) g[name]={ name, entries:[], total:0 };
+    g[name].entries.push({ id:e.id, desc:e.description||'', tags:e.tags||[], secs:e.duration, start:e.start });
+    g[name].total += e.duration;
+  });
+  return g;
+}
+
+// ── Infer Rippling prefix from tags ───────────────────────────────────────
+function inferPrefix(tags){
+  for(const t of tags){ if(TAG_PREFIX[t]) return TAG_PREFIX[t]; }
+  return null;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function render(from, to){
+  const names = Object.keys(G.grouped).sort();
+  const totalSec = names.reduce((s,k)=>s+G.grouped[k].total,0);
+  const totalEnt = names.reduce((s,k)=>s+G.grouped[k].entries.length,0);
+
+  document.getElementById('s-hours').textContent   = decHours(totalSec);
+  document.getElementById('s-clients').textContent = names.length;
+  document.getElementById('s-entries').textContent = totalEnt;
+  document.getElementById('s-period').textContent  = from===to ? fmtDate(from) : fmtDate(from)+' – '+fmtDate(to);
+  document.getElementById('stats').style.display   = 'grid';
+  document.getElementById('copy-all-btn').style.display = '';
+  document.getElementById('export-btn').style.display   = '';
+  document.getElementById('page-title').textContent = 'Time entries · '+(from===to?fmtDate(from):fmtDate(from)+' – '+fmtDate(to));
+
+  document.getElementById('cards').innerHTML = names.map((n,i)=>cardHTML(G.grouped[n],i)).join('');
+}
+
+function cardHTML(g, idx){
+  const col = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+  const init = g.name.replace(/[^a-zA-Z ]/g,'').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'??';
+  const bid = 'b'+idx;
+
+  // Entry rows
+  const entryRows = g.entries.map(e=>{
+    const tagClass = t => t.startsWith('rs')?'rs':t==='ms'?'ms':(t==='ayp-internal'||t==='out-of-scope')?'nb':'';
+    const tagsHtml = e.tags.map(t=>`<span class="tag ${tagClass(t)}">${t}</span>`).join('');
+    const desc = e.desc ? e.desc : '<em>No description</em>';
+    return `<div class="entry-row">
+      <div class="entry-time">${fmtTime(e.start)}</div>
+      <div class="entry-desc">${desc}</div>
+      <div class="entry-tags">${tagsHtml}</div>
+      <div class="entry-hrs">${decHours(e.secs)}h</div>
+    </div>`;
+  }).join('');
+
+  // Determine inferred prefix from all tags across entries
+  let inferredPrefix = null;
+  for(const e of g.entries){ inferredPrefix = inferPrefix(e.tags); if(inferredPrefix) break; }
+
+  // Build project prefix selector
+  const prefixOpts = Object.keys(REASONS).map(p=>`<option value="${p}" ${p===inferredPrefix?'selected':''}>${p}</option>`).join('');
+
+  // Build reason selector (will be populated by JS after render)
+  const reasonOpts = inferredPrefix
+    ? REASONS[inferredPrefix].map(r=>`<option>${r}</option>`).join('')
+    : Object.values(REASONS).flat().map(r=>`<option>${r}</option>`).join('');
+
+  return `<div class="card" id="card-${idx}">
+    <div class="card-head" onclick="toggleCard('${bid}')">
+      <div class="card-head-l">
+        <div class="avatar" style="background:${col.bg};color:${col.tx}">${init}</div>
+        <div>
+          <div class="client-name">${g.name}</div>
+          <div class="client-meta">${g.entries.length} ${g.entries.length===1?'entry':'entries'}</div>
+        </div>
+      </div>
+      <div class="card-head-r">
+        <span class="card-hours">${decHours(g.total)}h</span>
+        <span class="chev" id="chev-${bid}">›</span>
+      </div>
+    </div>
+    <div class="card-body" id="${bid}">
+      <div class="entry-list">${entryRows}</div>
+      <div class="rip-panel">
+        <div class="rip-head">
+          <span class="rip-title">Rippling entry</span>
+          <button class="rip-copy-btn" onclick="copyClient(${idx})">Copy</button>
+        </div>
+        <div class="rip-body">
+          <div class="rip-entry" id="rip-${idx}">
+            <div class="rip-entry-top">
+              <div class="rip-field-wrap">
+                <span class="rip-field-label">Project prefix</span>
+                <select class="rip-select" id="prefix-${idx}" onchange="onPrefixChange(${idx})">
+                  ${prefixOpts}
+                </select>
+              </div>
+              <div class="rip-field-wrap">
+                <span class="rip-field-label">Time entry reason</span>
+                <select class="rip-select" id="reason-${idx}">
+                  ${reasonOpts}
+                </select>
+              </div>
+              <div class="rip-hrs">${decHours(g.total)}h</div>
+            </div>
+            <div class="rip-desc-wrap">
+              <span class="rip-field-label">Description</span>
+              <textarea class="rip-desc-input" id="desc-${idx}" rows="2" placeholder="w/ [Contact]: brief description of work…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCard(bid){
+  const body = document.getElementById(bid);
+  const chev = document.getElementById('chev-'+bid);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+  chev.textContent = body.classList.contains('open') ? '⌄' : '›';
+}
+
+function onPrefixChange(idx){
+  const prefix = document.getElementById('prefix-'+idx).value;
+  const sel = document.getElementById('reason-'+idx);
+  const opts = (REASONS[prefix]||[]).map(r=>`<option>${r}</option>`).join('');
+  sel.innerHTML = opts;
+}
+
+// ── Copy helpers ──────────────────────────────────────────────────────────
+function getRipplingLine(idx){
+  const g = Object.values(G.grouped).sort((a,b)=>a.name.localeCompare(b.name))[idx];
+  const reason = document.getElementById('reason-'+idx)?.value || '';
+  const desc   = document.getElementById('desc-'+idx)?.value.trim() || '';
+  const hours  = decHours(g.total);
+  return `${reason}\t${hours}\t${desc}`;
+}
+
+function copyClient(idx){
+  const line = getRipplingLine(idx);
+  navigator.clipboard.writeText(line).then(()=>toast('Copied ✓'));
+}
+
+function copyAll(){
+  const names = Object.keys(G.grouped).sort();
+  const lines = names.map((_,i)=>getRipplingLine(i));
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>toast('All entries copied ✓'));
+}
+
+function exportCSV(){
+  const names = Object.keys(G.grouped).sort();
+  const rows = [['Client','Time Entry Reason','Hours','Description']];
+  names.forEach((_,i)=>{
+    const g = Object.values(G.grouped).sort((a,b)=>a.name.localeCompare(b.name))[i];
+    const reason = document.getElementById('reason-'+i)?.value||'';
+    const desc   = document.getElementById('desc-'+i)?.value.trim()||'';
+    rows.push([g.name, reason, decHours(g.total), desc]);
+  });
+  const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'),{
+    href: URL.createObjectURL(new Blob([csv],{type:'text/csv'})),
+    download: 'ayp-time-'+isoToday()+'.csv'
+  });
+  a.click();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function decHours(secs){ return (secs/3600).toFixed(2); }
+function fmtDate(d){
+  if(!d) return '';
+  const [,m,day]=d.split('-');
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]+' '+parseInt(day);
+}
+function fmtTime(iso){
+  if(!iso) return '';
+  return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function showAlert(type,msg){
+  document.getElementById('alert-area').innerHTML=`<div class="alert alert-${type}">${msg}</div>`;
+}
+function clearAlert(){ document.getElementById('alert-area').innerHTML=''; }
+function resetCards(){
+  document.getElementById('stats').style.display='none';
+  document.getElementById('copy-all-btn').style.display='none';
+  document.getElementById('export-btn').style.display='none';
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+</script>
+</body>
+</html>
